@@ -60,6 +60,70 @@ export async function keluar() {
   redirect("/admin/login");
 }
 
+export async function gantiPassword(prevState, formData) {
+  const data =
+    formData instanceof FormData
+      ? formData
+      : prevState instanceof FormData
+        ? prevState
+        : null;
+
+  const passwordBaru = data ? data.get("password_baru") : null;
+  const konfirmasiPassword = data ? data.get("konfirmasi_password") : null;
+
+  if (!passwordBaru || !konfirmasiPassword) {
+    return {
+      error: "Password baru dan konfirmasi password wajib diisi.",
+    };
+  }
+
+  if (passwordBaru.length < 8) {
+    return {
+      error: "Password baru minimal 8 karakter.",
+    };
+  }
+
+  if (passwordBaru !== konfirmasiPassword) {
+    return {
+      error: "Konfirmasi password tidak sama dengan password baru.",
+    };
+  }
+
+  try {
+    const supabase = await createAdminSessionClient();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return {
+        error: "Anda belum login atau sesi telah berakhir. Silakan login kembali.",
+      };
+    }
+
+    const { error } = await supabase.auth.updateUser({
+      password: passwordBaru,
+    });
+
+    if (error) {
+      return {
+        error: error.message || "Gagal mengganti password di server.",
+      };
+    }
+
+    return {
+      success: true,
+      message: "Password berhasil diganti.",
+    };
+  } catch (err) {
+    return {
+      error: err.message || "Terjadi kesalahan saat mengganti password.",
+    };
+  }
+}
+
 export const login = masuk;
 export const logout = keluar;
-
+export const ubahPassword = gantiPassword;
+export const updatePassword = gantiPassword;
